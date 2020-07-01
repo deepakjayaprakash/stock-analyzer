@@ -1,0 +1,14 @@
+.venv
+*.zip
+*.dbf
+*.csv
+*.txt
+*.log
+tmp/*
+__pycache__
+.DS_Store
+.idea/
+*.xlsx
+.ipynb_checkpoints
+.vscode
+db.sqlite3
