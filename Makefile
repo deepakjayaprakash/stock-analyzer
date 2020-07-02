@@ -8,7 +8,9 @@ install:
 	.venv/bin/pip install -r requirements.txt
 
 run:
-	.venv/bin/python manage.py runserver $(port) --settings=reports.settings.$(env) 
+	python3 manage.py runserver
+	#.venv/bin/python manage.py runserver $(port) --settings=reports.settings.$(env)
+
 
 clean:
 	rm *.pyc

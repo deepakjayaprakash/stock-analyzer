@@ -85,6 +85,15 @@ DATABASES = {
     }
 }
 
+# database properties
+HOST = '127.0.0.1'
+PORT = '3306'
+DATABASE_NAME = 'stock_db'
+USER_NAME = 'root'
+PASSWORD = 'root'
+
+QUANDL_AUTH_TOKEN = 'Aias61x7eL8Lxwz13EWS'
+
 DATABASE_URL = "mysql://root:root@127.0.0.1:3306/stock_db"
 
 # Password validation
