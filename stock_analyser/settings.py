@@ -85,6 +85,7 @@ DATABASES = {
     }
 }
 
+DATABASE_URL = "mysql://root:root@127.0.0.1:3306/stock_db"
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
