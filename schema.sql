@@ -31,6 +31,7 @@ CREATE TABLE `time_series` (
   `open` double default NULL,
   `close` double default NULL,
   `num_trades` double default NULL,
+  `num_shares` double default null,
   `close_open_spread` double default NULL,
   `percentage_change` double default NULL,
 
