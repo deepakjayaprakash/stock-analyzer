@@ -1,0 +1,5 @@
+OPEN = 'Open'
+CLOSE = 'Close'
+NUM_TRADES = 'No. of Trades'
+NUM_SHARES = 'No. of Shares'
+SPREAD_C_O = 'Spread C-O'

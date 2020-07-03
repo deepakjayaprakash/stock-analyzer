@@ -24,4 +24,5 @@ urlpatterns = [
     path("get-company-details/<str:name>", script_controller.get_company_details),
     path("get-company-data/<str:name>", script_controller.get_company_data),
     path("load-time-series/<int:id>", load_controller.load_company_data),
+    path("update-time-series/<int:id>", load_controller.update_company_data),
 ]
