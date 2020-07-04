@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from stock_analyser.views import script_controller, load_controller
+from stock_analyser.views import script_controller, load_controller, model_controller
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
@@ -25,4 +25,6 @@ urlpatterns = [
     path("get-company-data/<str:name>", script_controller.get_company_data),
     path("load-time-series/<int:id>", load_controller.load_company_data),
     path("update-time-series/<int:id>", load_controller.update_company_data),
+    path("update-time-series-with-date/<int:id>", load_controller.update_company_data_with_date),
+    path("model-test", model_controller.simple_api),
 ]

@@ -54,6 +54,7 @@ def load_company_data(request, id):
     return JsonResponse(response)
 
 
+# given company id, get and update data from company's last updated date to today
 def update_company_data(request, id):
     sql = "select symbol, quandl_code, last_updated_at from companies where id = %d" % (id)
     company_data = pd.read_sql(sql, settings.DATABASE_URL)
@@ -63,19 +64,44 @@ def update_company_data(request, id):
     to_date = str(datetime.today().date())
     print("quandl_code : ", quandl_code, ", from date: ", from_date, ", to_date", to_date)
 
+    load_time_series_into_table(company_data, from_date, id, quandl_code, to_date)
+    response = {}
+    return JsonResponse(response)
+
+
+# given company id, from date and date, get and update data
+def update_company_data_with_date(request, id):
+    sql = "select symbol, quandl_code from companies where id = %d" % (id)
+    company_data = pd.read_sql(sql, settings.DATABASE_URL)
+    quandl_code = "BSE/" + company_data['quandl_code'].get(0)
+    from_date = datetime.strptime(request.GET.get('fromDate'), "%Y-%m-%d").date()
+    from_date = str(from_date)
+    to_date = datetime.strptime(request.GET.get('toDate'), "%Y-%m-%d").date()
+    to_date = str(to_date)
+    print("quandl_code : ", quandl_code, ", from date: ", from_date, ", to_date", to_date)
+
+    load_time_series_into_table(company_data, from_date, id, quandl_code, to_date)
+    response = {}
+    return JsonResponse(response)
+
+
+def load_time_series_into_table(company_data, from_date, id, quandl_code, to_date):
     quandl_response = get_quandl_data(quandl_code, from_date, to_date)
     print(quandl_response.head())
     connection, cursor = create_connection_cursor()
+    update = True
     for i, row in quandl_response.iterrows():
         try:
             sql = get_insert_time_series_sql(company_data, i, id, row)
-            print(sql)
             cursor.execute(sql)
         except Exception as e:
             print("failed to insert this: ", tuple(row), "exception: ", e)
+            update = False
+    if update:
+        print("updated successfully")
+        sql = "update companies set last_updated_at = '%s'" % (to_date)
+        cursor.execute(sql)
     connection.commit()
-    response = {}
-    return JsonResponse(response)
 
 
 def get_insert_time_series_sql(company_data, i, id, row):
