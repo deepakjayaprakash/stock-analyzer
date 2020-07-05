@@ -2,9 +2,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 from django.http import JsonResponse
-from sklearn import linear_model
+from sklearn import linear_model, svm, tree
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, VotingRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
+from sklearn.neighbors import NearestCentroid, KNeighborsRegressor
+from sklearn.neural_network import MLPRegressor
 
 from stock_analyser import settings
 
@@ -19,20 +22,34 @@ def simple_test():
 
     print(company_data_modified.head())
     feature_train, feature_test, result_train, result_test = train_test_split(
-        company_data_modified[['trade_date','date_int', 'num_shares']], company_data_modified['close'], test_size=0.2)
+        company_data_modified[['trade_date', 'date_int', 'num_shares']], company_data_modified['close'], test_size=0.2)
 
     print("train size", feature_train.shape)
     print("test size", feature_test.shape)
 
-    apply_linear_regression(feature_test, feature_train, result_test, result_train, company_data_modified)
+    apply_regression(feature_test, feature_train, result_test, result_train, company_data_modified)
     response = {}
     return JsonResponse(response)
 
 
-def apply_linear_regression(feature_test, feature_train, result_test, result_train, company_data):
+def apply_regression(feature_test, feature_train, result_test, result_train, company_data):
     X_train = feature_train[['date_int', 'num_shares']]
     X_test = feature_test[['date_int', 'num_shares']]
-    regr = linear_model.LinearRegression()
+    # regr = linear_model.LinearRegression()
+    # regr = svm.SVR()
+    # regr = linear_model.BayesianRidge()
+    # regr = KNeighborsRegressor()
+    # regr = GradientBoostingRegressor()
+    regr = tree.DecisionTreeRegressor()
+    # regr = RandomForestRegressor()
+    # regr = MLPRegressor(random_state=1, max_iter=500, verbose=True)
+
+    # reg2 = tree.DecisionTreeRegressor()
+    # ereg = VotingRegressor(estimators=[('gb', regr), ('rf', reg2)])
+    run_regression_and_plot(X_test, X_train, company_data, feature_test, regr, result_test, result_train)
+
+
+def run_regression_and_plot(X_test, X_train, company_data, feature_test, regr, result_test, result_train):
     regr.fit(X_train, result_train)
     print("regression_done")
     print("score: ", regr.score(X_train, result_train))
@@ -41,8 +58,9 @@ def apply_linear_regression(feature_test, feature_train, result_test, result_tra
     test = pd.DataFrame(columns=['actual', 'pred'])
     test['actual'] = result_test
     test['pred'] = result_pred
-    print(test.tail(n=40))
 
+    # actual_test_data = get_actual_test_result
+    print(test.tail(n=4))
     plot_results(company_data, feature_test, result_pred, result_test)
     plt.show()
 
