@@ -26,5 +26,6 @@ urlpatterns = [
     path("load-time-series/<int:id>", load_controller.load_company_data),
     path("update-time-series/<int:id>", load_controller.update_company_data),
     path("update-time-series-with-date/<int:id>", load_controller.update_company_data_with_date),
-    path("model-test", model_controller.simple_api),
+    path("model-test/<int:id>", model_controller.simple_api),
+    path("predictor/<int:id>", model_controller.predictor),
 ]
