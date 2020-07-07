@@ -1,0 +1,14 @@
+1. Load company time series data
+curl --location --request GET 'localhost:8000/load-time-series/4086'
+
+2. update company time series data
+curl --location --request GET 'localhost:8000/update-time-series/4086'
+
+3. update company time series data with time
+curl --location --request GET 'localhost:8000/update-time-series-with-date/4594?fromDate=2015-10-01&toDate=2020-06-30'
+
+4. Test model
+curl --location --request GET 'localhost:8000/model-test/4594'
+
+5. Predict future prices
+curl --location --request GET 'localhost:8000/predictor/4594'

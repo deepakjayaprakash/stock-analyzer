@@ -2,7 +2,6 @@
 *.zip
 *.dbf
 *.csv
-*.txt
 *.log
 tmp/*
 __pycache__
