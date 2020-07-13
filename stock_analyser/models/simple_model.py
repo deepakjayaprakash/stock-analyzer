@@ -10,6 +10,12 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import NearestCentroid, KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Dropout
+import numpy as np
 
 from stock_analyser import settings
 
@@ -34,10 +40,10 @@ def simple_test(id):
     return JsonResponse(response)
 
 
-def get_actual_test_result():
+def get_actual_test_data():
     current_date = datetime.date.today()
     actual_test_date = pd.DataFrame(columns=['trade_date', 'date_int'])
-    end_date = 200
+    end_date = 30
     start = 1
     while (start < end_date):
         next_date = current_date + datetime.timedelta(days=start)
@@ -47,15 +53,92 @@ def get_actual_test_result():
     return actual_test_date
 
 
-def predict(id):
-    sql = "select trade_date,close, num_shares from time_series where company_id = %d and close is not null" % (id)
+def predict_from_model(id):
+    sql = "select trade_date,close, num_shares from time_series where company_id = %d and close is not null order by trade_date asc" % (id)
     company_data = pd.read_sql(sql, settings.DATABASE_URL)
 
     company_data_modified = pre_process_data(company_data)
 
     print(company_data_modified.head())
+
+    predict_using_lstm(company_data_modified[['close']], company_data_modified)
+
+    # predict_using_regression(company_data_modified)
+
+    # plot_prediction(company_data, result_pred, actual_test_data)
+    response = {}
+    return JsonResponse(response)
+
+
+def predict_using_lstm(total_data, raw_data):
+
+    predited_data = pd.DataFrame(columns=['predicted_price', 'actual_price', 'date'])
+    predited_data['actual_price'] = raw_data[-30:]['close']
+    predited_data['date'] = raw_data[-30:]['trade_date']
+
+
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    scaled_data = scaler.fit_transform(total_data)
+    features_set = []
+    labels = []
+    # last 60 days prices will be 60 columns(feature set) and 61 st column will be 61st i.e day's price stored in labels
+    k = 0
+    for i in range(60, scaled_data.shape[0] - 30):  # last 30 can be treated as test data
+        features_set.append(scaled_data[i - 60:i, 0])
+        labels.append(scaled_data[i, 0])
+        k = k + 1
+
+    features_set, labels = np.array(features_set), np.array(labels)
+    print("feature_set shape after data preperation: ", features_set.shape)
+    print("label shape after data preperation: ", labels.shape)
+    # converting feature set to LSTM input format,
+    features_set = np.reshape(features_set, (features_set.shape[0], features_set.shape[1], 1))
+
+    model = build_lstm_model(features_set, labels)
+
+    print("train data: shape: ", features_set.shape)
+    print("label data: size: ", labels.shape)
+
+    test_features = []
+    for i in range(scaled_data.shape[0] - 30, scaled_data.shape[0]):  # last 30 can be treated as test data
+        test_features.append(scaled_data[i - 60:i, 0])
+
+    test_features = np.array(test_features)
+    test_features = np.reshape(test_features, (test_features.shape[0], test_features.shape[1], 1))
+
+    predictions = model.predict(test_features)
+    predictions = scaler.inverse_transform(predictions)
+    predictions = predictions.flatten()
+
+    predited_data['predicted_price'] = predictions
+    print(predited_data)
+
+    ax = predited_data.plot(x='date', y='actual_price', style='b-', grid=True)
+    ax.set_xlabel("date")
+    ax.set_ylabel("price")
+    ax.scatter(predited_data['date'], predited_data['predicted_price'], color='g')
+    ax.legend(['actual_data', 'predicted'])
+    plt.show()
+
+def build_lstm_model(features_set, labels):
+    model = Sequential()
+    model.add(LSTM(units=50, return_sequences=True, input_shape=(features_set.shape[1], 1)))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=50, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=50, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(units=50))
+    model.add(Dropout(0.2))
+    model.add(Dense(units=1))
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.fit(features_set, labels, epochs=50, batch_size=32)
+    return model
+
+
+def predict_using_regression(company_data_modified):
     feature_train, feature_test, result_train, result_test = train_test_split(
-        company_data_modified[['trade_date', 'date_int', 'num_shares']], company_data_modified['close'], test_size=0.11)
+        company_data_modified[['trade_date', 'date_int', 'num_shares']], company_data_modified['close'], test_size=0.1)
 
     print("train size", feature_train.shape)
     print("test size", feature_test.shape)
@@ -63,20 +146,14 @@ def predict(id):
     feature_list = ['date_int']
     X_train = feature_train[feature_list]
 
-    # regr = tree.DecisionTreeRegressor()
+    regr = tree.DecisionTreeRegressor()
     regr = MLPRegressor(random_state=1, max_iter=500)
     regr.fit(X_train, result_train)
     print("score: ", regr.score(X_train, result_train))
-
-    actual_test_data = get_actual_test_result()
-
+    actual_test_data = get_actual_test_data()
     result_pred = regr.predict(actual_test_data[['date_int']])
     actual_test_data['predicted'] = result_pred
     print("predcited_data: \n", actual_test_data[['trade_date', 'predicted', 'date_int']])
-
-    # plot_prediction(company_data, result_pred, actual_test_data)
-    response = {}
-    return JsonResponse(response)
 
 
 def get_regressor(i):
@@ -121,7 +198,7 @@ def run_regression_and_plot(X_test, X_train, company_data, feature_test, regr, r
     print("..................")
     print("model_name: ", model_name)
     print("score: ", regr.score(X_train, result_train))
-    result_pred = regr.predict(X_test)
+    result_pred = regr.predict_from_model(X_test)
     print("mae", mean_absolute_error(result_test, result_pred))
     test = pd.DataFrame(columns=['actual', 'pred'])
     test['actual'] = result_test

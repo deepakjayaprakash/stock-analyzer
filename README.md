@@ -5,9 +5,9 @@ Run the following commands
 
 ```make venv```
 
-```make install```
-
 ### Steps to start the server
+
+```make install```
 
 ```source .venv/bin/activate```
 
