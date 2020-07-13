@@ -40,10 +40,10 @@ def simple_test(id):
     return JsonResponse(response)
 
 
-def get_actual_test_data():
+def get_actual_test_data(days):
     current_date = datetime.date.today()
     actual_test_date = pd.DataFrame(columns=['trade_date', 'date_int'])
-    end_date = 30
+    end_date = days
     start = 1
     while (start < end_date):
         next_date = current_date + datetime.timedelta(days=start)
@@ -54,7 +54,8 @@ def get_actual_test_data():
 
 
 def predict_from_model(id):
-    sql = "select trade_date,close, num_shares from time_series where company_id = %d and close is not null order by trade_date asc" % (id)
+    sql = "select trade_date,close, num_shares from time_series where company_id = %d and close is not null order by trade_date asc" % (
+        id)
     company_data = pd.read_sql(sql, settings.DATABASE_URL)
 
     company_data_modified = pre_process_data(company_data)
@@ -71,22 +72,21 @@ def predict_from_model(id):
 
 
 def predict_using_lstm(total_data, raw_data):
+    predit_last_num = 100  # number of points from most recent to use as test data
 
     predited_data = pd.DataFrame(columns=['predicted_price', 'actual_price', 'date'])
-    predited_data['actual_price'] = raw_data[-30:]['close']
-    predited_data['date'] = raw_data[-30:]['trade_date']
-
+    predited_data['actual_price'] = raw_data[-predit_last_num:]['close']
+    predited_data['date'] = raw_data[-predit_last_num:]['trade_date']
 
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler.fit_transform(total_data)
     features_set = []
     labels = []
     # last 60 days prices will be 60 columns(feature set) and 61 st column will be 61st i.e day's price stored in labels
-    k = 0
-    for i in range(60, scaled_data.shape[0] - 30):  # last 30 can be treated as test data
+
+    for i in range(60, scaled_data.shape[0]):
         features_set.append(scaled_data[i - 60:i, 0])
         labels.append(scaled_data[i, 0])
-        k = k + 1
 
     features_set, labels = np.array(features_set), np.array(labels)
     print("feature_set shape after data preperation: ", features_set.shape)
@@ -100,7 +100,7 @@ def predict_using_lstm(total_data, raw_data):
     print("label data: size: ", labels.shape)
 
     test_features = []
-    for i in range(scaled_data.shape[0] - 30, scaled_data.shape[0]):  # last 30 can be treated as test data
+    for i in range(scaled_data.shape[0] - predit_last_num, scaled_data.shape[0]):
         test_features.append(scaled_data[i - 60:i, 0])
 
     test_features = np.array(test_features)
@@ -108,17 +108,22 @@ def predict_using_lstm(total_data, raw_data):
 
     predictions = model.predict(test_features)
     predictions = scaler.inverse_transform(predictions)
-    predictions = predictions.flatten()
+    predictions = predictions.flatten()  # convert nd array output to 1 d array
 
     predited_data['predicted_price'] = predictions
     print(predited_data)
 
+    plot_lstm_results(predited_data)
+
+
+def plot_lstm_results(predited_data):
     ax = predited_data.plot(x='date', y='actual_price', style='b-', grid=True)
     ax.set_xlabel("date")
     ax.set_ylabel("price")
     ax.scatter(predited_data['date'], predited_data['predicted_price'], color='g')
     ax.legend(['actual_data', 'predicted'])
     plt.show()
+
 
 def build_lstm_model(features_set, labels):
     model = Sequential()
@@ -132,7 +137,7 @@ def build_lstm_model(features_set, labels):
     model.add(Dropout(0.2))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(features_set, labels, epochs=50, batch_size=32)
+    model.fit(features_set, labels, epochs=1, batch_size=32)
     return model
 
 
@@ -150,7 +155,7 @@ def predict_using_regression(company_data_modified):
     regr = MLPRegressor(random_state=1, max_iter=500)
     regr.fit(X_train, result_train)
     print("score: ", regr.score(X_train, result_train))
-    actual_test_data = get_actual_test_data()
+    actual_test_data = get_actual_test_data(31)
     result_pred = regr.predict(actual_test_data[['date_int']])
     actual_test_data['predicted'] = result_pred
     print("predcited_data: \n", actual_test_data[['trade_date', 'predicted', 'date_int']])

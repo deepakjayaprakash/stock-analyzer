@@ -1,4 +1,5 @@
 from datetime import datetime
+import datetime as dt
 
 import pandas as pd
 import quandl as quandl
@@ -60,7 +61,8 @@ def update_company_data(request, id):
     company_data = pd.read_sql(sql, settings.DATABASE_URL)
     quandl_code = "BSE/" + company_data['quandl_code'].get(0)
     last_updated_at = company_data['last_updated_at'].get(0)
-    from_date = str(last_updated_at.date())
+    from_date = last_updated_at + dt.timedelta(days=1)
+    from_date = str(from_date.date())
     to_date = str(datetime.today().date())
     print("quandl_code : ", quandl_code, ", from date: ", from_date, ", to_date", to_date)
 
