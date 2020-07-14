@@ -40,6 +40,7 @@ def simple_test(id):
     return JsonResponse(response)
 
 
+# gets the trade dates for next n days
 def get_actual_test_data(days):
     current_date = datetime.date.today()
     actual_test_date = pd.DataFrame(columns=['trade_date', 'date_int'])
@@ -66,13 +67,12 @@ def predict_from_model(id):
 
     # predict_using_regression(company_data_modified)
 
-    # plot_prediction(company_data, result_pred, actual_test_data)
     response = {}
     return JsonResponse(response)
 
 
 def predict_using_lstm(total_data, raw_data):
-    predit_last_num = 100  # number of points from most recent to use as test data
+    predit_last_num = 500  # number of points from most recent to use as test data
 
     predited_data = pd.DataFrame(columns=['predicted_price', 'actual_price', 'date'])
     predited_data['actual_price'] = raw_data[-predit_last_num:]['close']
@@ -137,7 +137,7 @@ def build_lstm_model(features_set, labels):
     model.add(Dropout(0.2))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(features_set, labels, epochs=1, batch_size=32)
+    model.fit(features_set, labels, epochs=50, batch_size=32)
     return model
 
 
