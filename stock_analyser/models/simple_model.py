@@ -2,22 +2,19 @@ import datetime
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from django.http import JsonResponse
 from sklearn import linear_model, svm, tree
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, VotingRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
-from sklearn.neighbors import NearestCentroid, KNeighborsRegressor
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import LSTM
-from keras.layers import Dropout
-import numpy as np
 
 from stock_analyser import settings
+from stock_analyser.models.lstm import build_lstm_model, predict_using_train_data
 
 matplotlib.use('TkAgg')
 
@@ -99,21 +96,7 @@ def predict_using_lstm(total_data, raw_data):
     print("train data: shape: ", features_set.shape)
     print("label data: size: ", labels.shape)
 
-    test_features = []
-    for i in range(scaled_data.shape[0] - predit_last_num, scaled_data.shape[0]):
-        test_features.append(scaled_data[i - 60:i, 0])
-
-    test_features = np.array(test_features)
-    test_features = np.reshape(test_features, (test_features.shape[0], test_features.shape[1], 1))
-
-    predictions = model.predict(test_features)
-    predictions = scaler.inverse_transform(predictions)
-    predictions = predictions.flatten()  # convert nd array output to 1 d array
-
-    predited_data['predicted_price'] = predictions
-    print(predited_data)
-
-    plot_lstm_results(predited_data)
+    predict_using_train_data(model, predit_last_num, predited_data, scaled_data, scaler)
 
 
 def plot_lstm_results(predited_data):
@@ -123,22 +106,6 @@ def plot_lstm_results(predited_data):
     ax.scatter(predited_data['date'], predited_data['predicted_price'], color='g')
     ax.legend(['actual_data', 'predicted'])
     plt.show()
-
-
-def build_lstm_model(features_set, labels):
-    model = Sequential()
-    model.add(LSTM(units=50, return_sequences=True, input_shape=(features_set.shape[1], 1)))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=50, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=50, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=50))
-    model.add(Dropout(0.2))
-    model.add(Dense(units=1))
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(features_set, labels, epochs=50, batch_size=32)
-    return model
 
 
 def predict_using_regression(company_data_modified):
