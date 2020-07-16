@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -57,27 +58,39 @@ def predict_using_lstm(company_data_modified):
     predicted_results = prepare_test_data_and_predict(features_set, model, num_previous_days, scaler, num_future_days)
     predicted_data['predicted_price'] = predicted_results
     print("shape predicted", predicted_data.head(10))
-    print_stats(predicted_data)
+    stats = print_stats(predicted_data)
 
     prediction_using_train_data = predict_for_train_data(company_data_modified, model, scaled_data, scaler)
 
+    plot = False
+    if plot:
+        plot_all_results(predicted_data, prediction_using_train_data)
+
+    response = dump_json(stats)
+    return JsonResponse(response, safe=False)
+
+
+def plot_all_results(predicted_data, prediction_using_train_data):
     plot1 = plt.figure(1)
     ax = prediction_using_train_data.plot(x='date', y='actual_price', style='b-', grid=True)
     ax.set_xlabel("date")
     ax.set_ylabel("price")
     ax.scatter(prediction_using_train_data['date'], prediction_using_train_data['predicted_price'], color='g')
     ax.legend(['actual_data', 'predicted'])
-
     plot2 = plt.figure(2)
     ax2 = predicted_data.plot(x='date', y='predicted_price', style='b-', grid=True)
     ax2.set_xlabel("date")
     ax2.set_ylabel("price")
     ax2.legend(['predicted'])
-
     plt.show()
 
-    response = {}
-    return JsonResponse(response)
+
+def dump_json(input):
+    def myconverter(o):
+        if isinstance(o, datetime.datetime):
+            return o.__str__()
+
+    return json.dumps(input, default=myconverter)
 
 
 def predict_for_train_data(company_data_modified, model, scaled_data, scaler):
@@ -91,6 +104,7 @@ def predict_for_train_data(company_data_modified, model, scaled_data, scaler):
 
 
 def print_stats(predicted_data):
+    stats = {}
     max_price = 0
     for i, row in predicted_data.iterrows():
         if row['predicted_price'] > max_price:
@@ -98,6 +112,7 @@ def print_stats(predicted_data):
     print("Statistics")
     print("===========================================")
     print("max_price: \t", max_price)
+    stats['max_price'] = max_price
     first = predicted_data['predicted_price'][1]
     last = predicted_data['predicted_price'][predicted_data.shape[0]]
     trend = ""
@@ -106,7 +121,9 @@ def print_stats(predicted_data):
     else:
         trend = "negative"
     print("Trend: \t", trend)
+    stats['trend'] = trend
     print("===========================================")
+    return stats
 
 
 # test data starts from last item in the array, basically most recent 60 days prices
