@@ -1,5 +1,5 @@
 from stock_analyser.models.lstm import lstm_actual_prediction
-from stock_analyser.models.simple_model import simple_test, predict_from_model
+from stock_analyser.models.all_models_test import simple_test, predict_from_model
 
 
 def simple_api(request, id):
