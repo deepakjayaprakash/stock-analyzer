@@ -1,10 +1,10 @@
 import datetime
-import json
+import simplejson as json
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from django.http import JsonResponse
+from django.http import HttpResponse
 from keras.layers import Dense
 from keras.layers import Dropout
 from keras.layers import LSTM
@@ -59,6 +59,7 @@ def predict_using_lstm(company_data_modified):
     predicted_data['predicted_price'] = predicted_results
     print("shape predicted", predicted_data.head(10))
     stats = print_stats(predicted_data)
+    stats['output'] = predicted_data.to_dict()
 
     prediction_using_train_data = predict_for_train_data(company_data_modified, model, scaled_data, scaler)
 
@@ -67,7 +68,8 @@ def predict_using_lstm(company_data_modified):
         plot_all_results(predicted_data, prediction_using_train_data)
 
     response = dump_json(stats)
-    return JsonResponse(response, safe=False)
+    print(response)
+    return HttpResponse(response, content_type='application/json')
 
 
 def plot_all_results(predicted_data, prediction_using_train_data):
@@ -164,7 +166,7 @@ def build_lstm_model(features_set, labels):
     model.add(Dropout(0.2))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(features_set, labels, epochs=100, batch_size=32)
+    model.fit(features_set, labels, epochs=1, batch_size=32)
     return model
 
 

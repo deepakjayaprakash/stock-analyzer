@@ -8,5 +8,5 @@ def simple_api(request, id):
 def predictor(request, id):
     return predict_from_model(id)
 
-def main_predictor(request, id):
+def lstm_model(request, id):
     return lstm_actual_prediction(id)
