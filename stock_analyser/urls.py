@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from stock_analyser.views import script_controller, load_controller, model_controller
+from stock_analyser.views import script_controller, load_controller, model_controller, scrape_controller
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
@@ -29,4 +29,5 @@ urlpatterns = [
     path("model-test/<int:id>", model_controller.simple_api),
     path("predictor/<int:id>", model_controller.predictor),
     path("main-predictor/<int:id>", model_controller.lstm_model),
+    path("scrape-symbol-test/<str:symbol>", scrape_controller.test_scrape),
 ]
