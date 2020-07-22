@@ -1,8 +1,8 @@
-from bs4 import BeautifulSoup
-import requests
-import pandas as pd
 import time
 
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 from django.http import HttpResponse
 
 
@@ -14,15 +14,31 @@ def scrape_test(symbol):
     links = []
     title = []
 
-    i = 0
     for item in mydivs:
         links.append(item.get('href'))
-        print(item.get('title'))
         title.append(item.get('title'))
 
-    # values = [link.get('href') for link in mydivs]
-    stock_data = pd.DataFrame({'LINK': links, 'Title': title})
+    stock_data = pd.DataFrame({'Link': links, 'Title': title})
     print(stock_data.shape)
-    print(stock_data.head(5))
+    selected_company = ""
+    for i, row in stock_data.iterrows():
+        if row['Title'] == "3M India":
+            selected_company = row['Link']
+    print("Link of selected company: ", selected_company)
+    time.sleep(2)
 
+    r = requests.get(selected_company)
+    data = r.text
+    soup = BeautifulSoup(data, 'html.parser')
+    mydivs = soup.findAll("div", {"class": "value_txtfl"})
+    myvalues = soup.findAll("div", {"class": "value_txtfr"})
+
+    col_names = []
+    col_names.append('Link')
+    for div in mydivs:
+        if div.text not in col_names:
+            col_names.append(div.text)
+
+    scraped_data = pd.DataFrame(columns=col_names)
+    print(scraped_data.head())
     return HttpResponse(None, content_type='application/json')
