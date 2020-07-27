@@ -42,3 +42,11 @@ CREATE TABLE `time_series` (
   KEY `fk_company_id_time_series` (`company_id`),
   CONSTRAINT `fk_company_id_time_series` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`)
 );
+
+CREATE TABLE `watchlist` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `watchlist_name` varchar(100) default NULL,
+  `company_ids` varchar(255) default NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id` (`id`)
+)

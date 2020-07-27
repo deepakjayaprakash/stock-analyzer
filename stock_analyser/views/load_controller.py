@@ -11,6 +11,7 @@ from stock_analyser.database.database_ops import create_connection_cursor
 from stock_analyser.helper.quandl_helper import get_quandl_data
 
 
+# Test API for getting quandl data
 def get_company_data(request, name):
     df = quandl.get("BSE/BOM500209", authtoken=settings.QUANDL_AUTH_TOKEN, start_date="2020-06-01",
                     end_date="2020-06-30")
@@ -31,6 +32,7 @@ def get_company_data(request, name):
 
 
 # id is the company row id
+# API to load company time series, from and to dates hardcoded
 def load_company_data(request, id):
     sql = "select actual_name, symbol, quandl_code from companies where id = %d" % (id)
     company_data = pd.read_sql(sql, settings.DATABASE_URL)
@@ -56,6 +58,7 @@ def load_company_data(request, id):
 
 
 # given company id, get and update data from company's last updated date to today
+# important API used in watchlist also
 def update_company_data(request, id):
     sql = "select symbol, quandl_code, last_updated_at from companies where id = %d" % (id)
     company_data = pd.read_sql(sql, settings.DATABASE_URL)
@@ -104,6 +107,16 @@ def load_time_series_into_table(company_data, from_date, id, quandl_code, to_dat
         sql = "update companies set last_updated_at = '%s'" % (to_date)
         cursor.execute(sql)
     connection.commit()
+
+
+def load_watchlist_by_id(request, id):
+    sql = "select company_ids from watchlist where id = %d" % (id)
+    company_ids = pd.read_sql(sql, settings.DATABASE_URL)
+    company_id_list = company_ids.split['company_ids'](",")
+    print(company_id_list)
+    # update_company_data(id)
+    response = {}
+    return JsonResponse(response)
 
 
 def get_insert_time_series_sql(company_data, i, id, row):

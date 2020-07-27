@@ -30,4 +30,5 @@ urlpatterns = [
     path("predictor/<int:id>", model_controller.predictor),
     path("main-predictor/<int:id>", model_controller.lstm_model),
     path("scrape-symbol-test/<str:symbol>", scrape_controller.test_scrape),
+    path("load-watchlist-by-id/<int:id>", load_controller.load_watchlist_by_id),
 ]
