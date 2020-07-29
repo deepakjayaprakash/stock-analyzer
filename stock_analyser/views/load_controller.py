@@ -60,6 +60,7 @@ def load_company_data(request, id):
 # given company id, get and update data from company's last updated date to today
 # important API used in watchlist also
 def update_company_data(request, id):
+    print("update_company_data id: ", id)
     sql = "select symbol, quandl_code, last_updated_at from companies where id = %d" % (id)
     company_data = pd.read_sql(sql, settings.DATABASE_URL)
     quandl_code = "BSE/" + company_data['quandl_code'].get(0)
@@ -84,13 +85,17 @@ def update_company_data_with_date(request, id):
     to_date = datetime.strptime(request.GET.get('toDate'), "%Y-%m-%d").date()
     to_date = str(to_date)
     print("quandl_code : ", quandl_code, ", from date: ", from_date, ", to_date", to_date)
-
     load_time_series_into_table(company_data, from_date, id, quandl_code, to_date)
     response = {}
     return JsonResponse(response)
 
 
 def load_time_series_into_table(company_data, from_date, id, quandl_code, to_date):
+    today_date = datetime.today().date()
+    if today_date <= datetime.strptime(from_date, "%Y-%m-%d").date():
+        print("from date higher than today, ignoring : ", quandl_code)
+        return
+
     quandl_response = get_quandl_data(quandl_code, from_date, to_date)
     print(quandl_response.head())
     connection, cursor = create_connection_cursor()
@@ -112,9 +117,9 @@ def load_time_series_into_table(company_data, from_date, id, quandl_code, to_dat
 def load_watchlist_by_id(request, id):
     sql = "select company_ids from watchlist where id = %d" % (id)
     company_ids = pd.read_sql(sql, settings.DATABASE_URL)
-    company_id_list = company_ids.split['company_ids'](",")
-    print(company_id_list)
-    # update_company_data(id)
+    company_id_list = str(company_ids['company_ids'].tolist()[0]).split(",")
+    for company_id in company_id_list:
+        update_company_data(0, int(company_id))
     response = {}
     return JsonResponse(response)
 
