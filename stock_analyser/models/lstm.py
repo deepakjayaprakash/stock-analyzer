@@ -12,21 +12,27 @@ from keras.models import Sequential
 from sklearn.preprocessing import MinMaxScaler
 
 from stock_analyser import settings
+from stock_analyser.helper.JsonHelper import dump_json
 
 
 def lstm_actual_prediction(id):
-    sql = "select trade_date,close, num_shares from time_series where company_id = %d and close is not null order by trade_date asc" % (
+    stats = run_model_and_return_stats(id)
+    response = dump_json(stats)
+    print(response)
+    return HttpResponse(response, content_type='application/json')
+
+
+def run_model_and_return_stats(id):
+    sql = "select trade_date,close, num_shares, symbol from time_series where company_id = %d and close is not null order by trade_date asc" % (
         id)
     company_data = pd.read_sql(sql, settings.DATABASE_URL)
-
     company_data_modified = pre_process_data(company_data)
-
     print(company_data_modified.head())
+    stats = predict_using_lstm(company_data_modified, company_data['symbol'][1])
+    return stats
 
-    return predict_using_lstm(company_data_modified)
 
-
-def predict_using_lstm(company_data_modified):
+def predict_using_lstm(company_data_modified, company_name):
     total_data = company_data_modified[['close']]  # actual data points
     predicted_data = pd.DataFrame(
         columns=['predicted_price', 'date'])  # will contain predicted data against the trade_date
@@ -59,7 +65,8 @@ def predict_using_lstm(company_data_modified):
     predicted_data['predicted_price'] = predicted_results
     print("shape predicted", predicted_data.head(10))
     stats = print_stats(predicted_data)
-    stats['output'] = predicted_data.to_dict()
+    # stats['output'] = predicted_data.to_dict()
+    stats['symbol'] = company_name
 
     prediction_using_train_data = predict_for_train_data(company_data_modified, model, scaled_data, scaler)
 
@@ -67,9 +74,7 @@ def predict_using_lstm(company_data_modified):
     if plot:
         plot_all_results(predicted_data, prediction_using_train_data)
 
-    response = dump_json(stats)
-    print(response)
-    return HttpResponse(response, content_type='application/json')
+    return stats
 
 
 def plot_all_results(predicted_data, prediction_using_train_data):
@@ -86,13 +91,6 @@ def plot_all_results(predicted_data, prediction_using_train_data):
     ax2.legend(['predicted'])
     plt.show()
 
-
-def dump_json(input):
-    def myconverter(o):
-        if isinstance(o, datetime.datetime):
-            return o.__str__()
-
-    return json.dumps(input, default=myconverter)
 
 
 def predict_for_train_data(company_data_modified, model, scaled_data, scaler):
@@ -113,10 +111,11 @@ def print_stats(predicted_data):
             max_price = row['predicted_price']
     print("Statistics")
     print("===========================================")
-    print("max_price: \t", max_price)
     stats['max_price'] = max_price
     first = predicted_data['predicted_price'][1]
     last = predicted_data['predicted_price'][predicted_data.shape[0]]
+
+    percentage_change = (last - first) / first * 100
     trend = ""
     if first < last:
         trend = "postive"
@@ -124,6 +123,7 @@ def print_stats(predicted_data):
         trend = "negative"
     print("Trend: \t", trend)
     stats['trend'] = trend
+    stats['percentage_change'] = percentage_change
     print("===========================================")
     return stats
 
@@ -166,7 +166,7 @@ def build_lstm_model(features_set, labels):
     model.add(Dropout(0.2))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(features_set, labels, epochs=1, batch_size=32)
+    model.fit(features_set, labels, epochs=settings.lstm_epoch, batch_size=settings.lstm_batch_size)
     return model
 
 

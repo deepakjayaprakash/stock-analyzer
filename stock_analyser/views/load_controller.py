@@ -12,6 +12,9 @@ from stock_analyser.helper.quandl_helper import get_quandl_data
 
 
 # Test API for getting quandl data
+from stock_analyser.services.watchlist_service import get_company_ids_of_watchlist_id
+
+
 def get_company_data(request, name):
     df = quandl.get("BSE/BOM500209", authtoken=settings.QUANDL_AUTH_TOKEN, start_date="2020-06-01",
                     end_date="2020-06-30")
@@ -115,9 +118,7 @@ def load_time_series_into_table(company_data, from_date, id, quandl_code, to_dat
 
 
 def load_watchlist_by_id(request, id):
-    sql = "select company_ids from watchlist where id = %d" % (id)
-    company_ids = pd.read_sql(sql, settings.DATABASE_URL)
-    company_id_list = str(company_ids['company_ids'].tolist()[0]).split(",")
+    company_id_list = get_company_ids_of_watchlist_id(id)
     for company_id in company_id_list:
         update_company_data(0, int(company_id))
     response = {}

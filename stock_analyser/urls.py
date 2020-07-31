@@ -17,6 +17,7 @@ from django.contrib import admin
 from django.urls import path
 
 from stock_analyser.views import script_controller, load_controller, model_controller, scrape_controller
+from stock_analyser.services import watchlist_service
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
@@ -31,4 +32,5 @@ urlpatterns = [
     path("main-predictor/<int:id>", model_controller.lstm_model),
     path("scrape-symbol-test/<str:symbol>", scrape_controller.test_scrape),
     path("load-watchlist-by-id/<int:id>", load_controller.load_watchlist_by_id),
+    path("analyze-watchlist-by-id/<int:id>", watchlist_service.analyze_watchlist_by_id),
 ]

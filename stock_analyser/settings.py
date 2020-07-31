@@ -133,3 +133,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+lstm_epoch = 1
+lstm_batch_size = 32
+
